@@ -6,7 +6,7 @@ Lightweight scripts to enable bulk retrieval of various data products from the N
 
 ## Setup
 
-Make the directory to house your data, either `"/home/${USERNAME}/data/nsidc"` (Linux) or `"/Users/${USERNAME}/data/${REPO}"` (Mac), or update the ./run_container.sh so that `LOCAL_DATA_DIR` in `run_container.sh` is the path you want to save your products.
+Make the directory to house your data, either `"/home/${USERNAME}/data/nsidc"` (Linux) or `"/Users/${USERNAME}/data/${REPO}"` (Mac), or update `LOCAL_DATA_DIR` in `run_container.sh` to the path you want to save the products.
 
 You will need an [Earthdata](https://search.earthdata.nasa.gov/search) username and password. I suggest adding them to your .netrc (which is imported into the Docker container) but the script will prompt you for it if it doesn't find the credentials. This would be
 ```bash
