@@ -10,18 +10,11 @@ TAG='0.0.1'
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS - Use the current username dynamically
   USERNAME=$(whoami)
-  LOCAL_PRODUCT_DIR="/Users/${USERNAME}/products/${REPO}"
   LOCAL_DATA_DIR="/Users/${USERNAME}/data/${REPO}"
 else
-  # Linux (default)
-  LOCAL_PRODUCT_DIR="/home/jlinick/products/${REPO}"
-  LOCAL_DATA_DIR="/home/jlinick/data/${REPO}"
-fi
-
-# Ensure directories exist
-if [[ ! -d "$LOCAL_PRODUCT_DIR" ]]; then
-  echo "Error: Directory '$LOCAL_PRODUCT_DIR' does not exist." >&2
-  exit 1
+  # Linux - Use the current username dynamically
+  USERNAME=$(whoami)
+  LOCAL_DATA_DIR="/home/${USERNAME}/data/${REPO}"
 fi
 
 if [[ ! -d "$LOCAL_DATA_DIR" ]]; then
@@ -30,7 +23,6 @@ if [[ ! -d "$LOCAL_DATA_DIR" ]]; then
 fi
 
 # Paths inside the Docker container
-DOCKER_PRODUCT_DIR='/products'
 DOCKER_DATA_DIR='/data'
 DOCKER_CODE_DIR='/code'
 DOCKER_IMAGE="${REPO}"
@@ -57,6 +49,5 @@ docker run --rm -ti \
     -v ~/.netrc:/root/.netrc:ro \
     -v "${LOCAL_DATA_DIR}:${DOCKER_DATA_DIR}" \
     -v "${SCRIPT_DIR}:${DOCKER_CODE_DIR}" \
-    -v "${LOCAL_PRODUCT_DIR}:${DOCKER_PRODUCT_DIR}" \
     "${DOCKER_IMAGE}:${DOCKER_TAG}" \
     /bin/bash
