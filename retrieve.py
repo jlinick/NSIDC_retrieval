@@ -3,15 +3,15 @@
 '''Script that goes through a list of collections (NSIDC shortnames) and retrieves 
 all the data products of that type, saving them to the mounted data directory under that shortname'''
 
-
 import os
 import time
 import random
 import json
 import earthaccess
+import argparse
 
 
-def retrieve_data(short_name=None, folder_path=None):
+def retrieve_data(short_name=None, folder_path=None, polygon=None):
     if short_name == None:
         raise Exception('Must provide short_name for data product')
     
@@ -21,24 +21,29 @@ def retrieve_data(short_name=None, folder_path=None):
     # If short_name is a list, recursively call retrieve_data for each item
     if isinstance(short_name, list):
         for sn in short_name:
-            retrieve_data(short_name=sn)
+            retrieve_data(short_name=sn, folder_path=folder_path, polygon=polygon)
         return  # Prevents further execution in the recursive calls
     if folder_path == None:
         folder_path = os.path.join('/data', short_name)
 
+    os.makedirs(folder_path, exist_ok=True)
+    
     print(f'querying for {short_name}')
     # 2. Search for product
-    results = earthaccess.search_data(
-        #provider='NSIDC',
-        short_name=short_name,  # dataset
-        #bounding_box=(-180, -90, 180, -60),  # Covers all of Antarctica
-        #temporal=("2014-01", "2025-01"),  # Adjust temporal range as needed
-        count=-1  # Number of results to fetch, -1 means all
-    )
+    search_params = {
+        'short_name': short_name,  # dataset
+        'count': -1  # Number of results to fetch, -1 means all
+    }
+    
+    # Add polygon constraint if provided
+    if polygon:
+        print(f"Using polygon constraint: {polygon}")
+        search_params['polygon'] = polygon
+        
+    results = earthaccess.search_data(**search_params)
     print('found {} results...'.format(len(results)))
 
     # 3. Download files
-    #downloaded_files = earthaccess.download(results, local_path=folder_path, threads=8)
     robust_download(results, folder_path, max_retries=5)
 
     # Save complete file
@@ -63,7 +68,21 @@ def robust_download(results, folder_path, max_retries=5):
                 print("Max retries reached. Skipping.")
                 return None  # Skip if retries fail
 
+
 if __name__ == '__main__':
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Retrieve NSIDC data products')
+    parser.add_argument('--ASE', action='store_true', help='Apply Amundsen Sea Embayment constraint')
+    parser.add_argument('--collection', type=str, help='Specific collection shortname to retrieve')
+    args = parser.parse_args()
+    
+    # Define ASE polygon (ensure counter-clockwise order for CMR API)
+    ase_polygon = None
+    if args.ASE:
+        ase_polygon = [(-89.583, -73.187), (-115.003, -71.4766), (-129.543, -77.645), 
+                        (-89.2618, -80.4573), (-89.583, -73.187)]
+    
+    # Default MIT collections list
     collections = [
     'NSIDC-0478', # MEaSUREs Greenland Ice Sheet Velocity Map from InSAR Data V002
     'NSIDC-0484', # MEaSUREs InSAR-Based Antarctica Ice Velocity Map V002
@@ -96,5 +115,11 @@ if __name__ == '__main__':
     'ASO_3M_SD', # ASO L4 Lidar Snow Depth 3m UTM Grid V001
     'ASO_50M_SD', # ASO L4 Lidar Snow Depth 50m UTM Grid V001
     ]
-    retrieve_data(short_name=collections)
+    
+    # If specific collection is provided, use only that one
+    if args.collection:
+        print(f"Retrieving specific collection: {args.collection}")
+        collections = [args.collection]
+    
+    retrieve_data(short_name=collections, polygon=ase_polygon)
     print('complete.')
